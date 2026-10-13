@@ -1,0 +1,28 @@
+<configuration>
+    <springProperty scope="context" name="applicationName" source="spring.application.name" defaultValue="bikes"/>
+    <springProperty scope="context" name="graylogHost" source="graylog.host" defaultValue="localhost"/>
+    <springProperty scope="context" name="graylogPort" source="graylog.port" defaultValue="12201"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="GELF" class="biz.paluch.logging.gelf.logback.GelfLogbackAppender">
+        <graylogHost>${graylogHost}</graylogHost>
+        <graylogPort>${graylogPort}</graylogPort>
+        <originHost>${applicationName}</originHost>
+        <includeFullMdc>true</includeFullMdc>
+        <includeLocation>true</includeLocation>
+        <extractStackTrace>true</extractStackTrace>
+        <facility>${applicationName}</facility>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="GELF"/>
+    </root>
+
+    <logger name="br.edu.ifc.bikes" level="DEBUG"/>
+</configuration>

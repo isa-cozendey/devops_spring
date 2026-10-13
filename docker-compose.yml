@@ -1,0 +1,147 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: bikes
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [bikes-net]
+
+  app:
+    build:
+      context: .
+      target: runtime
+    image: bikes-api:local
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bikes?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      GRAYLOG_HOST: graylog
+      GRAYLOG_PORT: 12201
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      graylog:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q 'UP'"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    networks: [bikes-net]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [bikes-net]
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks: [bikes-net]
+
+  mongodb:
+    image: mongo:8.0
+    volumes:
+      - mongo-data:/data/db
+    networks: [bikes-net]
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.1
+    environment:
+      discovery.type: single-node
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    networks: [bikes-net]
+
+  graylog:
+    image: graylog/graylog:6.1
+    environment:
+      GRAYLOG_PASSWORD_SECRET: bikes-local-password-secret-change-me
+      GRAYLOG_ROOT_PASSWORD_SHA2: 8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      GRAYLOG_HTTP_BIND_ADDRESS: 0.0.0.0:9000
+      GRAYLOG_HTTP_EXTERNAL_URI: http://localhost:9000/
+      GRAYLOG_ELASTICSEARCH_HOSTS: http://opensearch:9200
+      GRAYLOG_MONGODB_URI: mongodb://mongodb:27017/graylog
+    ports:
+      - "9000:9000"
+      - "12201:12201/udp"
+    depends_on:
+      mongodb:
+        condition: service_started
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/api/system/lbstatus | grep -qi alive"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    networks: [bikes-net]
+
+  graylog-init:
+    image: curlimages/curl:8.16.0
+    depends_on:
+      graylog:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        curl -fsS -u admin:admin -H 'X-Requested-By: bikes-compose'
+        -H 'Content-Type: application/json'
+        -X POST http://graylog:9000/api/system/inputs
+        -d '{"title":"Bikes GELF UDP","type":"org.graylog2.inputs.gelf.udp.GELFUDPInput","global":true,"configuration":{"bind_address":"0.0.0.0","port":12201,"recv_buffer_size":262144,"decompress_size_limit":8388608}}'
+        || true
+    networks: [bikes-net]
+
+volumes:
+  mysql-data:
+  prometheus-data:
+  grafana-data:
+  mongo-data:
+  opensearch-data:
+
+networks:
+  bikes-net:
+    driver: bridge
