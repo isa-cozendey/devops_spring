@@ -68,20 +68,20 @@ O workflow em `.github/workflows/ci-cd.yml` roda em push e pull request para `ma
 
    <img width="1222" height="245" alt="image" src="https://github.com/user-attachments/assets/b82db33f-1ae1-463f-ad9e-c77ed1119fa6" />
    
-3. **Pipeline:** na aba GitHub Actions, automatiza a entrega. Pois quando são enviadas alterações para a branch principal, pipeline executa os testes, constrói a imagem Docker, em caso de push, publica a imagem no GitHub Container Registry (GHCR).
+2. **Pipeline:** na aba GitHub Actions, automatiza a entrega. Pois quando são enviadas alterações para a branch principal, pipeline executa os testes, constrói a imagem Docker, em caso de push, publica a imagem no GitHub Container Registry (GHCR).
 
-   imagem aqui
+   <img width="1897" height="885" alt="image" src="https://github.com/user-attachments/assets/440bf56b-ed15-446c-a39c-382157120b92" />
    
-5. **Prometheus:** coleta e armazena métricas, Realiza consultas periódicas ao endpoint da aplicação, coleta e armazena valores numéricos. Por exemplo: memória utilizada, CPU, número de requisições e a duração delas.
+3. **Prometheus:** coleta e armazena métricas, Realiza consultas periódicas ao endpoint da aplicação, coleta e armazena valores numéricos. Por exemplo: memória utilizada, CPU, número de requisições e a duração delas.
    
    <img width="1916" height="365" alt="image" src="https://github.com/user-attachments/assets/88f8fe9c-1f9d-49c9-b9b8-73681585d44e" />
    <img width="1900" height="901" alt="image" src="https://github.com/user-attachments/assets/ac1c49ce-dd67-4748-ac71-ca49b8d7a26d" />
 
-6. **Grafana:** consulta o Prometheus e utiliza métricas para gerar gráficos. O dashboard é configurado para exibir as informações, como CPU, memória heap, requisições por segundo, códigos de status HTTP, tempo de resposta, entre outros.
+4. **Grafana:** consulta o Prometheus e utiliza métricas para gerar gráficos. O dashboard é configurado para exibir as informações, como CPU, memória heap, requisições por segundo, códigos de status HTTP, tempo de resposta, entre outros.
    
    <img width="1897" height="910" alt="image" src="https://github.com/user-attachments/assets/5831b9af-58a5-4248-8bf9-7da7dacaa7ff" />
 
-7. **Graylog:** centraliza logs e permite pesquisas. Recebe mensagens enviadas pela aplicação, organiza os registros e permite o monitoramento de erros, por exemplo.
+5. **Graylog:** centraliza logs e permite pesquisas. Recebe mensagens enviadas pela aplicação, organiza os registros e permite o monitoramento de erros, por exemplo.
 
     <img width="1917" height="546" alt="image" src="https://github.com/user-attachments/assets/de347af9-dd2d-4b75-a4de-629221b4dccd" />
     <img width="897" height="717" alt="image" src="https://github.com/user-attachments/assets/af2cc43b-d998-49ec-b54b-8222ba36cb60" />
