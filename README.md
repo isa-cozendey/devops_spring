@@ -1,99 +1,34 @@
-4# Bikes API: automacao, observabilidade e DevSecOps
-
-API Java com Spring Boot. O foco do teste funcional descrito aqui e a atualizacao
-de senha de usuario; o projeto tambem sobe uma infraestrutura de banco,
-monitoramento e centralizacao de logs para a materia de infraestrutura.
+# Projeto da Disciplina de Devops
+## Bikes API: automação, observabilidade e DevSecOps
 
 ## Stack
 
 - Java 21 + Spring Boot
-- MySQL para persistencia
+- MySQL 
 - Prometheus + Actuator + Micrometer
-- Grafana com dashboard provisionado
+- Grafana com dashboard 
 - Graylog + MongoDB + OpenSearch
 - GitHub Actions publicando no GHCR
 
 ## Subir o sistema
 
-Pre-requisitos: Docker Engine com Docker Compose v2 e aproximadamente 4 GB de
-memoria disponivel. Na raiz do projeto, execute:
+Pré-requisitos: Docker Engine com Docker Compose v2 e aproximadamente 4 GB de
+memoria disponível. Na raiz do projeto, execute:
 
 ```bash
 docker compose up --build
 ```
 
-O primeiro build pode levar alguns minutos. Aguarde a inicializacao dos
-containers e confirme que a API esta respondendo em
-http://localhost:8080/actuator/health antes de enviar requisicoes.
+O primeiro build pode levar alguns minutos. Aguarde a inicialização dos
+containers e confirme que a API está respondendo
+http://localhost:8080/actuator/health antes de enviar requisições.
 
-## Testar atualizacao de senha (Spring Boot)
+<img width="403" height="465" alt="image" src="https://github.com/user-attachments/assets/12e26b02-d9f5-474b-8d48-613637585dda" />
 
-As requisicoes podem ser feitas pelo Postman ou pelo Swagger UI em
-http://localhost:8080/docs-bikes.html. No Postman, use o header
-`Content-Type: application/json` nos requests que enviam body.
 
-### 1. Criar um usuario para o teste
+## Infraestrutura
 
-Envie esta requisicao para criar um usuario. A senha precisa ter exatamente
-6 caracteres. Se ja existir um usuario com esse e-mail, escolha outro.
-
-```http
-POST http://localhost:8080/api/v1/usuarios
-Content-Type: application/json
-```
-
-```json
-{
-  "username": "teste@example.com",
-  "password": "abc123"
-}
-```
-
-A resposta esperada e `201 Created`. Anote o `id` retornado; ele sera usado
-nas proximas requisicoes.
-
-### 2. Atualizar a senha
-
-Substitua `{id}` pelo identificador recebido ao criar o usuario.
-
-```http
-PATCH http://localhost:8080/api/v1/usuarios/{id}
-Content-Type: application/json
-```
-
-```json
-{
-  "senhaAtual": "abc123",
-  "novaSenha": "def456",
-  "confirmarSenha": "def456"
-}
-```
-
-Se a senha atual estiver correta e a nova senha for igual a confirmacao, a API
-retorna `204 No Content`. Uma resposta sem body e o comportamento esperado para
-esse status.
-
-### 3. Confirmar a alteracao
-
-Tente atualizar novamente usando a senha antiga como `senhaAtual`. A API deve
-retornar `400 Bad Request`, indicando que a senha atual nao confere. Em seguida,
-envie outro `PATCH` com `"senhaAtual": "def456"` para confirmar que a nova senha
-foi aceita. Esse ultimo request tambem atualiza a senha; escolha uma nova senha
-de 6 caracteres para `novaSenha` e `confirmarSenha`.
-
-Outros resultados que podem ser demonstrados:
-
-- Senhas novas diferentes entre si: `400 Bad Request`.
-- ID de usuario inexistente: `404 Not Found`.
-- Campo ausente ou senha com tamanho diferente de 6: `422 Unprocessable Content`.
-
-O recurso `GET /api/v1/usuarios/{id}` retorna o usuario, mas nao expoe a senha;
-por isso a verificacao e feita tentando usar a senha antiga e depois a nova
-como senha atual.
-
-## Servicos de infraestrutura
-
-O Compose inicia a API e seus servicos de suporte:
+O Compose inicia a API e seus serviços de suporte:
 
 | Servico | URL | Credenciais |
 | --- | --- | --- |
@@ -104,11 +39,11 @@ O Compose inicia a API e seus servicos de suporte:
 | Grafana | http://localhost:3000 | admin / admin |
 | Graylog | http://localhost:9000 | admin / admin |
 
-O MySQL e usado pela API para persistencia. O servico `graylog-init` cria
+O MySQL é usado pela API para persistência. O servico `graylog-init` cria
 automaticamente a entrada GELF UDP na porta `12201`; a API envia logs
-estruturados para o Graylog e tambem os imprime no console do container.
+estruturados para o Graylog e também os imprime no console do container.
 
-Para acompanhar o estado dos containers, use outro terminal na raiz do projeto:
+Para acompanhar o estado dos containers, em outro terminal na raiz do projeto:
 
 ```bash
 docker compose ps
@@ -121,23 +56,44 @@ docker compose down
 ```
 
 `docker compose down -v` tambem remove os volumes, inclusive os dados do MySQL,
-Grafana, Prometheus, MongoDB e OpenSearch. Use essa opcao somente se quiser
-apagar os dados locais.
+Grafana, Prometheus, MongoDB e OpenSearch. Pode ser usado para apagar os dados locais.
 
 ## Pipeline CI/CD
 
-O workflow em `.github/workflows/ci-cd.yml` roda em push e pull request para `main` ou `master`. Ele executa `./mvnw clean verify`, constroi a imagem pelo `Dockerfile` multistage e, em push, publica tags com SHA e `latest` no GitHub Container Registry.
+O workflow em `.github/workflows/ci-cd.yml` roda em push e pull request para `main` ou `master`. Ele executa `./mvnw clean verify`, constroi a imagem pelo `Dockerfile` multistage e, em push, publica tags com SHA e `latest` no GitHub Container Registry. A publicacao usa `GITHUB_TOKEN`.
 
-A publicacao usa `GITHUB_TOKEN`; habilite `read and write permissions` para Actions em Settings > Actions > General.
+## Entrega
 
-## Evidencias para entrega
+1. **Docker:** cria e executa os containers. O Compose define quais serviços existem, como se conectam, quais portas usam e quais dependências precisam estar disponíveis antes de outros serviços iniciarem.
 
-1. Pipeline verde na aba Actions do GitHub.
-2. Dashboard `Bikes API - Spring Boot` em `http://localhost:3000/d/bikes-api` com chamadas para `GET /api/v1/usuarios`.
-3. Graylog com a busca `application:bikes` ou `facility:bikes` exibindo eventos GELF.
-4. Prometheus em `http://localhost:9090/targets` mostrando o target `bikes` como `UP`.
+   <img width="1222" height="245" alt="image" src="https://github.com/user-attachments/assets/b82db33f-1ae1-463f-ad9e-c77ed1119fa6" />
+   
+3. **Pipeline:** na aba GitHub Actions, automatiza a entrega. Pois quando são enviadas alterações para a branch principal, pipeline executa os testes, constrói a imagem Docker, em caso de push, publica a imagem no GitHub Container Registry (GHCR).
 
-## Decisoes de seguranca e operacao
+   imagem aqui
+   
+5. **Prometheus:** coleta e armazena métricas, Realiza consultas periódicas ao endpoint da aplicação, coleta e armazena valores numéricos. Por exemplo: memória utilizada, CPU, número de requisições e a duração delas.
+   
+   <img width="1916" height="365" alt="image" src="https://github.com/user-attachments/assets/88f8fe9c-1f9d-49c9-b9b8-73681585d44e" />
+   <img width="1900" height="901" alt="image" src="https://github.com/user-attachments/assets/ac1c49ce-dd67-4748-ac71-ca49b8d7a26d" />
+
+6. **Grafana:** consulta o Prometheus e utiliza métricas para gerar gráficos. O dashboard é configurado para exibir as informações, como CPU, memória heap, requisições por segundo, códigos de status HTTP, tempo de resposta, entre outros.
+   
+   <img width="1897" height="910" alt="image" src="https://github.com/user-attachments/assets/5831b9af-58a5-4248-8bf9-7da7dacaa7ff" />
+
+7. **Graylog:** centraliza logs e permite pesquisas. Recebe mensagens enviadas pela aplicação, organiza os registros e permite o monitoramento de erros, por exemplo.
+
+    <img width="1917" height="546" alt="image" src="https://github.com/user-attachments/assets/de347af9-dd2d-4b75-a4de-629221b4dccd" />
+    <img width="897" height="717" alt="image" src="https://github.com/user-attachments/assets/af2cc43b-d998-49ec-b54b-8222ba36cb60" />
+
+    Exemplos de consulta:
+   ```Consulta Graylog
+     "Started BikesApplication"
+     "Duplicate entry"
+     source:bikes AND 1062
+   ```
+
+## Decisões de segurança e operação
 
 - O `Dockerfile` usa dois estagios: Maven/JDK para build e JRE Alpine para runtime.
 - O processo da API roda como usuario sem privilegios.
